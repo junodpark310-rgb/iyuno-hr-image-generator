@@ -73,9 +73,9 @@ const TRIM_TOP = 5;
 const TRIM_RIGHT = 4;
 
 const MARGIN = 28;
-const HEADER_SIZE = 30;
+const HEADER_SIZE = 34;
 const BODY_SIZE = 16;
-const HEADER_LH = 38;
+const HEADER_LH = 42;
 const BODY_LH = 26;
 const SECTION_GAP = 35;
 // Position name defaults removed — now dynamic via data.positionStyle
