@@ -72,7 +72,7 @@ const TRIM_LEFT = 5;
 const TRIM_TOP = 5;
 const TRIM_RIGHT = 4;
 
-const MARGIN = 30;
+const MARGIN = 28;
 const HEADER_SIZE = 30;
 const BODY_SIZE = 16;
 const HEADER_LH = 38;
