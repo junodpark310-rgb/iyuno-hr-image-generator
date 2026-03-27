@@ -22,7 +22,7 @@ interface JDData {
 
 const defaultData: JDData = {
   positionName: "한국어 더빙팀 Project Manager",
-  positionStyle: { fontSize: 20, gap: 126, x: 60, y: 70 },
+  positionStyle: { fontSize: 20, gap: 38, x: 30, y: 5 },
   sections: [
     {
       header: "채용분야 및 인원",
@@ -64,7 +64,7 @@ const FONT_FAMILY =
 const TEMPLATE_W = 868;
 const TOP_LOGO_END = 275; // end of iyuno logo area (includes full logo)
 const TOP_BANNER_START = 310; // start of 채용공고 text
-const TOP_END = 700; // end of top fixed area (after adventure banner)
+const TOP_END = 693; // end of top fixed area (before black horizontal line at y=695)
 const BOTTOM_START = 1860; // start of bottom fixed area
 const BOTTOM_END = 4160; // end of template
 
@@ -411,7 +411,7 @@ export default function JobDescription() {
       positionStyle: {
         ...prev.positionStyle,
         x: Math.max(0, Math.min(400, Math.round(dragStartRef.current.origX + dx))),
-        y: Math.max(-20, Math.min(60, Math.round(dragStartRef.current.origY + dy))),
+        y: Math.max(-10, Math.min(30, Math.round(dragStartRef.current.origY + dy))),
       },
     }));
   };
@@ -492,7 +492,7 @@ export default function JobDescription() {
                 { label: "글자 크기", key: "fontSize" as const, min: 12, max: 36 },
                 { label: "공간 높이", key: "gap" as const, min: 0, max: 150 },
                 { label: "X 위치", key: "x" as const, min: 0, max: 400 },
-                { label: "Y 오프셋", key: "y" as const, min: -20, max: 120 },
+                { label: "Y 오프셋", key: "y" as const, min: -10, max: 30 },
               ]).map(({ label, key, min, max }) => (
                 <div key={key}>
                   <label className="block text-xs text-gray-400 mb-1">
