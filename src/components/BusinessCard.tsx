@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toPng } from "html-to-image";
+import jsPDF from "jspdf";
+import { writePsd, Psd } from "ag-psd";
 
 // ─── Canvas 스펙 상수 ──────────────────────────────────────────────────────────
 const CANVAS_W = 964;
@@ -258,6 +260,172 @@ export default function BusinessCard() {
     link.click();
   };
 
+  const downloadBackPdf = () => {
+    const canvas = backCanvasRef.current;
+    if (!canvas) return;
+
+    // 명함 크기: 85×50mm
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: [85, 50] });
+    const imgData = canvas.toDataURL("image/png");
+    pdf.addImage(imgData, "PNG", 0, 0, 85, 50);
+    pdf.save("businesscard_back.pdf");
+  };
+
+  const downloadBackPsd = async () => {
+    const canvas = backCanvasRef.current;
+    if (!canvas) return;
+    await document.fonts.ready;
+
+    const createTextLayer = (
+      name: string,
+      text: string,
+      fontStyle: string,
+      color: string,
+      x: number,
+      y: number
+    ) => {
+      const layerCanvas = document.createElement("canvas");
+      layerCanvas.width = CANVAS_W;
+      layerCanvas.height = CANVAS_H;
+      const ctx = layerCanvas.getContext("2d")!;
+      ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+      ctx.fillStyle = color;
+      ctx.font = fontStyle;
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(text, x, y);
+      return {
+        name,
+        canvas: layerCanvas,
+        left: 0,
+        top: 0,
+      };
+    };
+
+    // 배경 레이어
+    const bgCanvas = document.createElement("canvas");
+    bgCanvas.width = CANVAS_W;
+    bgCanvas.height = CANVAS_H;
+    const bgCtx = bgCanvas.getContext("2d")!;
+    bgCtx.fillStyle = "#FFFFFF";
+    bgCtx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+    // 아이콘 레이어
+    const iconCanvas = document.createElement("canvas");
+    iconCanvas.width = CANVAS_W;
+    iconCanvas.height = CANVAS_H;
+    const iconCtx = iconCanvas.getContext("2d")!;
+    iconCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+    drawIyunoIcon(iconCtx);
+
+    // 구분선 레이어
+    const dividerCanvas = document.createElement("canvas");
+    dividerCanvas.width = CANVAS_W;
+    dividerCanvas.height = CANVAS_H;
+    const divCtx = dividerCanvas.getContext("2d")!;
+    divCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+    drawDivider(divCtx);
+
+    const layers = [
+      createTextLayer(
+        "Name (EN)",
+        data.nameEn,
+        `bold ${px(14)}px "Montserrat", sans-serif`,
+        COLOR_DARK,
+        px(19.23),
+        cy(90.51)
+      ),
+      createTextLayer(
+        "Name (KR)",
+        data.nameKr,
+        `${px(8)}px "Noto Sans KR", sans-serif`,
+        COLOR_GRAY,
+        px(110.16),
+        cy(91.26)
+      ),
+      createTextLayer(
+        "Title",
+        data.title,
+        `bold ${px(9)}px "Montserrat", sans-serif`,
+        COLOR_YELLOW,
+        px(19.28),
+        cy(79.23)
+      ),
+      createTextLayer(
+        "Team",
+        data.team,
+        `${px(8)}px "Montserrat", sans-serif`,
+        COLOR_YELLOW,
+        px(19.28),
+        cy(69.66)
+      ),
+      createTextLayer(
+        "Phone",
+        data.mobile ? `${data.phone}   |   ${data.mobile}` : data.phone,
+        `${px(7)}px "Montserrat", sans-serif`,
+        COLOR_DARK,
+        px(26.31),
+        cy(56.74)
+      ),
+      createTextLayer(
+        "Email",
+        data.email,
+        `${px(7)}px "Montserrat", sans-serif`,
+        COLOR_DARK,
+        px(26.31),
+        cy(56.74 - 1.208 * 7)
+      ),
+      createTextLayer(
+        "Address 1",
+        data.address1,
+        `${px(6)}px "Montserrat", sans-serif`,
+        COLOR_GRAY,
+        px(26.18),
+        cy(39.53)
+      ),
+      createTextLayer(
+        "Address 2",
+        data.address2,
+        `${px(6)}px "Montserrat", sans-serif`,
+        COLOR_GRAY,
+        px(26.18),
+        cy(39.53 - 1.333 * 6)
+      ),
+      createTextLayer(
+        "Website",
+        "www.iyuno.com",
+        `bold ${px(7)}px "Montserrat", sans-serif`,
+        COLOR_DARK,
+        px(19.97),
+        cy(19.92)
+      ),
+    ];
+
+    const psd: Psd = {
+      width: CANVAS_W,
+      height: CANVAS_H,
+      children: [
+        { name: "Background", canvas: bgCanvas, left: 0, top: 0 },
+        { name: "iyuno Icon", canvas: iconCanvas, left: 0, top: 0 },
+        { name: "Divider", canvas: dividerCanvas, left: 0, top: 0 },
+        ...layers.map((l) => ({
+          name: l.name,
+          canvas: l.canvas,
+          left: l.left,
+          top: l.top,
+        })),
+      ],
+    };
+
+    const buffer = writePsd(psd);
+    const blob = new Blob([buffer], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = "businesscard_back.psd";
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Form */}
@@ -278,19 +446,33 @@ export default function BusinessCard() {
             </div>
           ))}
         </div>
-        <div className="flex gap-3 mt-6">
+        <div className="space-y-3 mt-6">
           <button
             onClick={downloadFront}
-            className="flex-1 bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
+            className="w-full bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
           >
-            앞면 다운로드
+            앞면 다운로드 (PNG)
           </button>
-          <button
-            onClick={downloadBack}
-            className="flex-1 bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
-          >
-            뒷면 다운로드
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={downloadBack}
+              className="flex-1 bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
+            >
+              뒷면 PNG
+            </button>
+            <button
+              onClick={downloadBackPdf}
+              className="flex-1 bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
+            >
+              뒷면 PDF
+            </button>
+            <button
+              onClick={downloadBackPsd}
+              className="flex-1 bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
+            >
+              뒷면 PSD
+            </button>
+          </div>
         </div>
       </div>
 
