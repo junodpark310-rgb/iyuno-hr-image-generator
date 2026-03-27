@@ -77,7 +77,7 @@ const HEADER_SIZE = 34;
 const BODY_SIZE = 16;
 const HEADER_LH = 42;
 const BODY_LH = 26;
-const SECTION_GAP = 35;
+const SECTION_GAP = 25;
 // Position name defaults removed — now dynamic via data.positionStyle
 
 export default function JobDescription() {
