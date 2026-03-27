@@ -16,13 +16,13 @@ interface CardData {
 }
 
 const defaultData: CardData = {
-  nameEn: "Daisy Kang",
-  nameKr: "강민영",
+  nameEn: "Junoh Park",
+  nameKr: "박준오",
   title: "Team Leader",
   team: "Localization Group - Korean Subtitle Team",
   phone: "+82 2 516 6748",
-  mobile: "+82 10-4451-0323",
-  email: "daisy.kang@iyuno.com",
+  mobile: "+82 10-0000-0000",
+  email: "junoh.park@iyuno.com",
   address1: "11th & 12th Floor, Dream Tower, 19 World Cup",
   address2: "Buk-ro 56-gil, Mapo-gu, Seoul, Korea, 03923",
 };
