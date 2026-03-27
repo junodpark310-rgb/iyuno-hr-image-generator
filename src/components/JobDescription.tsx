@@ -184,7 +184,7 @@ export default function JobDescription() {
   const calcMiddleHeight = useCallback(
     (ctx: CanvasRenderingContext2D): number => {
       const contentW = TEMPLATE_W - MARGIN * 2;
-      let h = 40; // top padding
+      let h = 60; // top padding
       for (let i = 0; i < data.sections.length; i++) {
         const section = data.sections[i];
         // header
@@ -302,7 +302,7 @@ export default function JobDescription() {
 
 
 
-    let curY = middleStartY + 40;
+    let curY = middleStartY + 60;
 
     for (let i = 0; i < data.sections.length; i++) {
       const section = data.sections[i];
