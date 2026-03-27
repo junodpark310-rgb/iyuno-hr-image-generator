@@ -1,8 +1,48 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { toPng } from "html-to-image";
 
+// ─── Canvas 스펙 상수 ──────────────────────────────────────────────────────────
+const CANVAS_W = 964;
+const CANVAS_H = 567;
+const SCALE = 4;
+const PAGE_H = 141.73; // PDF 페이지 높이 (pt)
+
+// pt → canvas px 변환 유틸
+const px = (pt: number) => pt * SCALE;
+// PDF y좌표(아래에서 위) → Canvas y좌표(위에서 아래, baseline 기준)
+const cy = (yFromBottom: number) => (PAGE_H - yFromBottom) * SCALE;
+
+// ─── 색상 상수 ────────────────────────────────────────────────────────────────
+const COLOR_DARK = "rgb(35,25,22)";
+const COLOR_GRAY = "rgb(90,87,87)";
+const COLOR_YELLOW = "rgb(244,176,74)";
+const COLOR_DIVIDER = "rgb(220,221,221)";
+const COLOR_ICON_BAR = "rgb(7,2,4)";
+const COLOR_ICON_DOT = "rgb(244,177,75)";
+
+// ─── iyuno 아이콘 바 데이터 ──────────────────────────────────────────────────
+interface Bar {
+  xPt: number;    // PDF x (pt)
+  yTopPt: number; // PDF y_from_top (pt)
+  hPt: number;    // 높이 (pt)
+}
+
+const ICON_BARS: Bar[] = [
+  { xPt: 201.30, yTopPt: 24.26, hPt: 5.89 },
+  { xPt: 205.60, yTopPt: 19.98, hPt: 12.04 },
+  { xPt: 209.90, yTopPt: 22.11, hPt: 8.57 },
+  { xPt: 214.20, yTopPt: 21.58, hPt: 9.90 },
+  { xPt: 218.50, yTopPt: 23.72, hPt: 5.89 },
+];
+const BAR_W_PT = 2.676;
+const BAR_RADIUS_PT = 1.338;
+const DOT_CX_PT = 202.64;
+const DOT_CY_FROM_TOP_PT = 21.72; // PAGE_H - 120.01
+const DOT_R_PT = 1.472;
+
+// ─── 타입 ─────────────────────────────────────────────────────────────────────
 interface CardData {
   nameEn: string;
   nameKr: string;
@@ -39,26 +79,181 @@ const fields: { key: keyof CardData; label: string }[] = [
   { key: "address2", label: "주소 2" },
 ];
 
+// ─── Canvas 드로우 함수들 ─────────────────────────────────────────────────────
+
+function drawBackground(ctx: CanvasRenderingContext2D) {
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+}
+
+function drawIyunoIcon(ctx: CanvasRenderingContext2D) {
+  ctx.fillStyle = COLOR_ICON_BAR;
+  for (const bar of ICON_BARS) {
+    const x = px(bar.xPt);
+    const y = px(bar.yTopPt);
+    const w = px(BAR_W_PT);
+    const h = px(bar.hPt);
+    const r = px(BAR_RADIUS_PT);
+    ctx.beginPath();
+    if (typeof ctx.roundRect === "function") {
+      ctx.roundRect(x, y, w, h, r);
+    } else {
+      // fallback: arc 기반 roundRect
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.arcTo(x + w, y, x + w, y + r, r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+      ctx.lineTo(x + r, y + h);
+      ctx.arcTo(x, y + h, x, y + h - r, r);
+      ctx.lineTo(x, y + r);
+      ctx.arcTo(x, y, x + r, y, r);
+      ctx.closePath();
+    }
+    ctx.fill();
+  }
+
+  // 노란 점
+  ctx.fillStyle = COLOR_ICON_DOT;
+  ctx.beginPath();
+  ctx.arc(px(DOT_CX_PT), px(DOT_CY_FROM_TOP_PT), px(DOT_R_PT), 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawDivider(ctx: CanvasRenderingContext2D) {
+  // 세로 구분선: x=21.38pt, y_start=(141.73-61.53)*4=320.8, length=30.13*4=120.5
+  const divX = px(21.38);
+  const divYStart = cy(61.53);
+  const divLength = px(30.13);
+  ctx.strokeStyle = COLOR_DIVIDER;
+  ctx.lineWidth = px(0.75); // 3pt PDF 선 → 상대적 두께
+  ctx.beginPath();
+  ctx.moveTo(divX, divYStart);
+  ctx.lineTo(divX, divYStart + divLength);
+  ctx.stroke();
+}
+
+function drawNameLine(ctx: CanvasRenderingContext2D, data: CardData) {
+  // 영문 이름: x=19.23pt, y_from_bottom=90.51pt, font=Montserrat Bold 14pt
+  ctx.fillStyle = COLOR_DARK;
+  ctx.font = `bold ${px(14)}px "Montserrat", sans-serif`;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(data.nameEn, px(19.23), cy(90.51));
+
+  // 한글 이름: x=110.16pt, y_from_bottom=91.26pt, font=Noto Sans KR 8pt
+  ctx.fillStyle = COLOR_GRAY;
+  ctx.font = `${px(8)}px "Noto Sans KR", sans-serif`;
+  ctx.fillText(data.nameKr, px(110.16), cy(91.26));
+}
+
+function drawTitle(ctx: CanvasRenderingContext2D, data: CardData) {
+  // 직함: x=19.28pt, y_from_bottom=79.23pt, Montserrat Bold 9pt
+  ctx.fillStyle = COLOR_YELLOW;
+  ctx.font = `bold ${px(9)}px "Montserrat", sans-serif`;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(data.title, px(19.28), cy(79.23));
+}
+
+function drawTeam(ctx: CanvasRenderingContext2D, data: CardData) {
+  // 팀명: x=19.28pt, y_from_bottom=69.66pt, Montserrat Regular 8pt
+  ctx.fillStyle = COLOR_YELLOW;
+  ctx.font = `${px(8)}px "Montserrat", sans-serif`;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(data.team, px(19.28), cy(69.66));
+}
+
+function drawContactInfo(ctx: CanvasRenderingContext2D, data: CardData) {
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `${px(7)}px "Montserrat", sans-serif`;
+  ctx.fillStyle = COLOR_DARK;
+
+  // 전화: x=26.31pt, y_from_bottom=56.74pt, 7pt
+  const phoneY = cy(56.74);
+  const contactX = px(26.31);
+  const phoneText = data.mobile
+    ? `${data.phone}   |   ${data.mobile}`
+    : data.phone;
+  ctx.fillText(phoneText, contactX, phoneY);
+
+  // 이메일: phone_y - 1.208*7pt 라인간격 (아래에서 위로 → Canvas는 빼기)
+  const emailYFromBottom = 56.74 - 1.208 * 7;
+  ctx.fillText(data.email, contactX, cy(emailYFromBottom));
+}
+
+function drawAddress(ctx: CanvasRenderingContext2D, data: CardData) {
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `${px(6)}px "Montserrat", sans-serif`;
+  ctx.fillStyle = COLOR_GRAY;
+
+  // 주소1: x=26.18pt, y_from_bottom=39.53pt
+  ctx.fillText(data.address1, px(26.18), cy(39.53));
+
+  // 주소2: addr1_y - 1.333*6pt
+  const addr2YFromBottom = 39.53 - 1.333 * 6;
+  ctx.fillText(data.address2, px(26.18), cy(addr2YFromBottom));
+}
+
+function drawWebsite(ctx: CanvasRenderingContext2D) {
+  // www.iyuno.com: x=19.97pt, y_from_bottom=19.92pt, Montserrat Bold 7pt
+  ctx.fillStyle = COLOR_DARK;
+  ctx.font = `bold ${px(7)}px "Montserrat", sans-serif`;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("www.iyuno.com", px(19.97), cy(19.92));
+}
+
+function drawBackCanvas(ctx: CanvasRenderingContext2D, data: CardData) {
+  drawBackground(ctx);
+  drawIyunoIcon(ctx);
+  drawDivider(ctx);
+  drawNameLine(ctx, data);
+  drawTitle(ctx, data);
+  drawTeam(ctx, data);
+  drawContactInfo(ctx, data);
+  drawAddress(ctx, data);
+  drawWebsite(ctx);
+}
+
+// ─── 메인 컴포넌트 ─────────────────────────────────────────────────────────────
 export default function BusinessCard() {
   const [data, setData] = useState<CardData>(defaultData);
   const frontRef = useRef<HTMLDivElement>(null);
-  const backRef = useRef<HTMLDivElement>(null);
+  const backCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const update = (key: keyof CardData, value: string) => {
     setData((prev) => ({ ...prev, [key]: value }));
   };
 
-  const downloadImage = async (
-    ref: React.RefObject<HTMLDivElement | null>,
-    filename: string
-  ) => {
-    if (!ref.current) return;
-    const dataUrl = await toPng(ref.current, {
-      pixelRatio: 3,
+  const renderCanvas = useCallback(async (currentData: CardData) => {
+    const canvas = backCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    await document.fonts.ready;
+    drawBackCanvas(ctx, currentData);
+  }, []);
+
+  useEffect(() => {
+    renderCanvas(data);
+  }, [data, renderCanvas]);
+
+  const downloadFront = async () => {
+    if (!frontRef.current) return;
+    const dataUrl = await toPng(frontRef.current, {
+      pixelRatio: 1,
       cacheBust: true,
     });
     const link = document.createElement("a");
-    link.download = filename;
+    link.download = "businesscard_front.png";
+    link.href = dataUrl;
+    link.click();
+  };
+
+  const downloadBack = () => {
+    const canvas = backCanvasRef.current;
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.download = "businesscard_back.png";
     link.href = dataUrl;
     link.click();
   };
@@ -85,13 +280,13 @@ export default function BusinessCard() {
         </div>
         <div className="flex gap-3 mt-6">
           <button
-            onClick={() => downloadImage(frontRef, "businesscard_front.png")}
+            onClick={downloadFront}
             className="flex-1 bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
           >
             앞면 다운로드
           </button>
           <button
-            onClick={() => downloadImage(backRef, "businesscard_back.png")}
+            onClick={downloadBack}
             className="flex-1 bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
           >
             뒷면 다운로드
@@ -108,15 +303,15 @@ export default function BusinessCard() {
           <p className="text-xs text-gray-500 mb-2">앞면</p>
           <div
             ref={frontRef}
-            style={{ width: 600, height: 354 }}
+            style={{ width: 964, height: 567 }}
             className="relative overflow-hidden shadow-lg"
           >
             <img
               src="/templates/bc_front.png"
               alt="Business Card Front"
-              width={600}
-              height={354}
-              style={{ display: "block", width: 600, height: 354, objectFit: "cover" }}
+              width={964}
+              height={567}
+              style={{ display: "block", width: 964, height: 567, objectFit: "cover" }}
             />
           </div>
         </div>
@@ -124,127 +319,12 @@ export default function BusinessCard() {
         {/* Back */}
         <div>
           <p className="text-xs text-gray-500 mb-2">뒷면</p>
-          <div
-            ref={backRef}
-            style={{ width: 600, height: 354 }}
-            className="bg-white relative overflow-hidden shadow-lg"
-          >
-            {/* iyuno icon top right */}
-            <div className="absolute top-6 right-6">
-              <svg width="40" height="40" viewBox="0 0 40 40">
-                <rect x="2" y="6" width="4" height="28" rx="2" fill="#1a1a1a" />
-                <rect x="10" y="0" width="4" height="40" rx="2" fill="#1a1a1a" />
-                <rect x="18" y="0" width="4" height="40" rx="2" fill="#1a1a1a" />
-                <rect x="26" y="0" width="4" height="40" rx="2" fill="#1a1a1a" />
-                <rect x="34" y="10" width="4" height="22" rx="2" fill="#1a1a1a" />
-                <circle cx="4" cy="3" r="3" fill="#E8A020" />
-              </svg>
-            </div>
-
-            <div className="absolute left-10 top-10">
-              {/* Name */}
-              <div className="flex items-baseline gap-3 mb-0.5">
-                <span
-                  style={{
-                    fontFamily: "Arial, sans-serif",
-                    fontSize: 28,
-                    fontWeight: "bold",
-                    color: "#1a1a1a",
-                  }}
-                >
-                  {data.nameEn}
-                </span>
-                <span
-                  style={{
-                    fontFamily: "Arial, sans-serif",
-                    fontSize: 16,
-                    color: "#888",
-                  }}
-                >
-                  {data.nameKr}
-                </span>
-              </div>
-
-              {/* Title */}
-              <p
-                style={{
-                  fontFamily: "Arial, sans-serif",
-                  fontSize: 16,
-                  fontWeight: "bold",
-                  color: "#E8A020",
-                  marginBottom: 2,
-                }}
-              >
-                {data.title}
-              </p>
-
-              {/* Team */}
-              <p
-                style={{
-                  fontFamily: "Arial, sans-serif",
-                  fontSize: 14,
-                  color: "#b0b0b0",
-                  marginBottom: 16,
-                }}
-              >
-                {data.team}
-              </p>
-
-              {/* Contact info with left border */}
-              <div
-                style={{
-                  borderLeft: "3px solid #E8A020",
-                  paddingLeft: 12,
-                  marginBottom: 16,
-                }}
-              >
-                <p
-                  style={{
-                    fontFamily: "Arial, sans-serif",
-                    fontSize: 13,
-                    color: "#333",
-                    marginBottom: 2,
-                  }}
-                >
-                  {data.phone} &nbsp;|&nbsp; {data.mobile}
-                </p>
-                <p
-                  style={{
-                    fontFamily: "Arial, sans-serif",
-                    fontSize: 13,
-                    color: "#333",
-                    marginBottom: 4,
-                  }}
-                >
-                  {data.email}
-                </p>
-                <p
-                  style={{
-                    fontFamily: "Arial, sans-serif",
-                    fontSize: 12,
-                    color: "#888",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {data.address1}
-                  <br />
-                  {data.address2}
-                </p>
-              </div>
-
-              {/* Website */}
-              <p
-                style={{
-                  fontFamily: "Arial, sans-serif",
-                  fontSize: 13,
-                  fontWeight: "bold",
-                  color: "#1a1a1a",
-                }}
-              >
-                www.iyuno.com
-              </p>
-            </div>
-          </div>
+          <canvas
+            ref={backCanvasRef}
+            width={CANVAS_W}
+            height={CANVAS_H}
+            style={{ display: "block", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+          />
         </div>
       </div>
     </div>
