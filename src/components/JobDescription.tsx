@@ -77,7 +77,7 @@ const HEADER_SIZE = 34;
 const BODY_SIZE = 16;
 const HEADER_LH = 42;
 const BODY_LH = 26;
-const SECTION_GAP = 25;
+const SECTION_GAP = 35;
 // Position name defaults removed — now dynamic via data.positionStyle
 
 export default function JobDescription() {
@@ -185,7 +185,8 @@ export default function JobDescription() {
     (ctx: CanvasRenderingContext2D): number => {
       const contentW = TEMPLATE_W - MARGIN * 2;
       let h = 40; // top padding
-      for (const section of data.sections) {
+      for (let i = 0; i < data.sections.length; i++) {
+        const section = data.sections[i];
         // header
         h += measureTextBlock(
           ctx,
@@ -207,9 +208,11 @@ export default function JobDescription() {
             false
           );
         }
-        h += SECTION_GAP;
+        if (i < data.sections.length - 1) {
+          h += SECTION_GAP;
+        }
       }
-      h += 5; // bottom padding
+      h += 15; // bottom padding (last section to 전형절차)
       return h;
     },
     [data.sections, measureTextBlock]
@@ -301,7 +304,8 @@ export default function JobDescription() {
 
     let curY = middleStartY + 40;
 
-    for (const section of data.sections) {
+    for (let i = 0; i < data.sections.length; i++) {
+      const section = data.sections[i];
       // Section header
       curY = drawText(
         ctx,
@@ -330,7 +334,9 @@ export default function JobDescription() {
           false
         );
       }
-      curY += SECTION_GAP;
+      if (i < data.sections.length - 1) {
+        curY += SECTION_GAP;
+      }
     }
 
     drawY = middleStartY + middleH;
