@@ -64,7 +64,7 @@ const FONT_FAMILY =
 const TEMPLATE_W = 868;
 const TOP_LOGO_END = 275; // end of iyuno logo area (includes full logo)
 const TOP_BANNER_START = 310; // start of 채용공고 text
-const TOP_END = 693; // end of top fixed area (before black horizontal line at y=695)
+const TOP_END = 700; // end of top fixed area (before black horizontal line at y=695)
 const BOTTOM_START = 1860; // start of bottom fixed area
 const BOTTOM_END = 4160; // end of template
 
@@ -243,17 +243,17 @@ export default function JobDescription() {
 
     // ===== PART 1: TOP FIXED =====
 
-    // 1a. Logo area (template y:0 to y:235)
+    // 1a. Logo area (template y:0 to y:235) — trim 5px border from src left+top
     ctx.drawImage(
       img,
-      0,
-      0,
-      TEMPLATE_W,
-      TOP_LOGO_END,
-      0,
-      drawY,
-      TEMPLATE_W,
-      TOP_LOGO_END
+      5,
+      5,
+      TEMPLATE_W - 5,
+      TOP_LOGO_END - 5,
+      5,
+      drawY + 5,
+      TEMPLATE_W - 5,
+      TOP_LOGO_END - 5
     );
     drawY += TOP_LOGO_END;
 
@@ -276,16 +276,16 @@ export default function JobDescription() {
     }
     drawY += posNameH;
 
-    // 1c. 채용공고 + monster + adventure banner (template y:310 to y:700)
+    // 1c. 채용공고 + monster + adventure banner (template y:310 to y:700) — trim 5px border from src left
     ctx.drawImage(
       img,
-      0,
+      5,
       TOP_BANNER_START,
-      TEMPLATE_W,
+      TEMPLATE_W - 5,
       topBannerH,
-      0,
+      5,
       drawY,
-      TEMPLATE_W,
+      TEMPLATE_W - 5,
       topBannerH
     );
     drawY += topBannerH;
@@ -329,16 +329,16 @@ export default function JobDescription() {
 
     drawY = middleStartY + middleH;
 
-    // ===== PART 3: BOTTOM FIXED =====
+    // ===== PART 3: BOTTOM FIXED ===== — trim 5px border from src left
     ctx.drawImage(
       img,
-      0,
+      5,
       BOTTOM_START,
-      TEMPLATE_W,
+      TEMPLATE_W - 5,
       bottomH,
-      0,
+      5,
       drawY,
-      TEMPLATE_W,
+      TEMPLATE_W - 5,
       bottomH
     );
   }, [data, calcMiddleHeight, drawText]);
