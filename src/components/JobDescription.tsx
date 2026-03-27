@@ -22,7 +22,7 @@ interface JDData {
 
 const defaultData: JDData = {
   positionName: "한국어 더빙팀 Project Manager",
-  positionStyle: { fontSize: 48, gap: 122, x: 30, y: 52 },
+  positionStyle: { fontSize: 48, gap: 114, x: 30, y: 52 },
   sections: [
     {
       header: "채용분야 및 인원",
@@ -63,7 +63,7 @@ const FONT_FAMILY =
 // Template image slicing coordinates
 const TEMPLATE_W = 868;
 const TOP_LOGO_END = 275; // end of iyuno logo area (includes full logo)
-const TOP_BANNER_START = 392; // start of 채용공고 text (skip template white space)
+const TOP_BANNER_START = 384; // start of banner area (monster head top edge)
 const TOP_END = 772; // end of top fixed area (monster graphic + separator line at y=769-770)
 const BOTTOM_START = 1860; // start of bottom fixed area
 const BOTTOM_END = 4152; // end of template (trim bottom grey band)
@@ -209,7 +209,7 @@ export default function JobDescription() {
         }
         h += SECTION_GAP;
       }
-      h += 20; // bottom padding
+      h += 5; // bottom padding
       return h;
     },
     [data.sections, measureTextBlock]
