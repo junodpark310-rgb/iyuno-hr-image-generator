@@ -64,7 +64,7 @@ const FONT_FAMILY =
 const TEMPLATE_W = 868;
 const TOP_LOGO_END = 275; // end of iyuno logo area (includes full logo)
 const TOP_BANNER_START = 310; // start of 채용공고 text
-const TOP_END = 700; // end of top fixed area (before black horizontal line at y=695)
+const TOP_END = 772; // end of top fixed area (monster graphic + separator line at y=769-770)
 const BOTTOM_START = 1860; // start of bottom fixed area
 const BOTTOM_END = 4152; // end of template (trim bottom grey band)
 
@@ -297,13 +297,7 @@ export default function JobDescription() {
     // ===== PART 2: MIDDLE DYNAMIC =====
     const middleStartY = drawY;
 
-    // 1페이지(배너)와 2페이지(동적 섹션) 구분선
-    ctx.strokeStyle = "#222222";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(MARGIN, middleStartY);
-    ctx.lineTo(TEMPLATE_W - MARGIN, middleStartY);
-    ctx.stroke();
+
 
     let curY = middleStartY + 40;
 
