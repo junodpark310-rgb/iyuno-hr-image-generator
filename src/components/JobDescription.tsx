@@ -22,7 +22,7 @@ interface JDData {
 
 const defaultData: JDData = {
   positionName: "한국어 더빙팀 Project Manager",
-  positionStyle: { fontSize: 20, gap: 55, x: 60, y: 38 },
+  positionStyle: { fontSize: 20, gap: 126, x: 60, y: 70 },
   sections: [
     {
       header: "채용분야 및 인원",
@@ -68,10 +68,10 @@ const TOP_END = 700; // end of top fixed area (after adventure banner)
 const BOTTOM_START = 1860; // start of bottom fixed area
 const BOTTOM_END = 4160; // end of template
 
-const MARGIN = 60;
-const HEADER_SIZE = 24;
+const MARGIN = 30;
+const HEADER_SIZE = 30;
 const BODY_SIZE = 16;
-const HEADER_LH = 32;
+const HEADER_LH = 38;
 const BODY_LH = 26;
 const SECTION_GAP = 35;
 // Position name defaults removed — now dynamic via data.positionStyle
@@ -292,14 +292,6 @@ export default function JobDescription() {
 
     // ===== PART 2: MIDDLE DYNAMIC =====
     const middleStartY = drawY;
-
-    // Separator line at top of content area
-    ctx.strokeStyle = "#222222";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(MARGIN, middleStartY);
-    ctx.lineTo(TEMPLATE_W - MARGIN, middleStartY);
-    ctx.stroke();
 
     let curY = middleStartY + 40;
 
