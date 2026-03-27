@@ -271,6 +271,69 @@ export default function BusinessCard() {
     pdf.save("businesscard_back.pdf");
   };
 
+  const downloadFrontPdf = async () => {
+    if (!frontRef.current) return;
+    const dataUrl = await toPng(frontRef.current, { pixelRatio: 1, cacheBust: true });
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: [85, 50] });
+    pdf.addImage(dataUrl, "PNG", 0, 0, 85, 50);
+    pdf.save("businesscard_front.pdf");
+  };
+
+  const downloadFrontPsd = async () => {
+    if (!frontRef.current) return;
+    const dataUrl = await toPng(frontRef.current, { pixelRatio: 1, cacheBust: true });
+
+    const img = new Image();
+    await new Promise<void>((resolve) => {
+      img.onload = () => resolve();
+      img.src = dataUrl;
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext("2d")!;
+    ctx.drawImage(img, 0, 0);
+
+    const psd: Psd = {
+      width: canvas.width,
+      height: canvas.height,
+      children: [{
+        name: "Business Card Front",
+        canvas: canvas,
+        left: 0,
+        top: 0,
+      }],
+    };
+
+    const buffer = writePsd(psd);
+    const blob = new Blob([buffer], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = "businesscard_front.psd";
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadBothPng = async () => {
+    await downloadFront();
+    await new Promise<void>((resolve) => setTimeout(resolve, 200));
+    downloadBack();
+  };
+
+  const downloadBothPdf = async () => {
+    await downloadFrontPdf();
+    await new Promise<void>((resolve) => setTimeout(resolve, 200));
+    downloadBackPdf();
+  };
+
+  const downloadBothPsd = async () => {
+    await downloadFrontPsd();
+    await new Promise<void>((resolve) => setTimeout(resolve, 200));
+    await downloadBackPsd();
+  };
+
   const downloadBackPsd = async () => {
     const canvas = backCanvasRef.current;
     if (!canvas) return;
@@ -447,30 +510,72 @@ export default function BusinessCard() {
           ))}
         </div>
         <div className="space-y-3 mt-6">
-          <button
-            onClick={downloadFront}
-            className="w-full bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
-          >
-            앞면 다운로드 (PNG)
-          </button>
+          {/* 앞면 */}
+          <p className="text-xs font-medium text-gray-500">앞면 다운로드</p>
+          <div className="flex gap-2">
+            <button
+              onClick={downloadFront}
+              className="flex-1 bg-gray-900 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
+            >
+              PNG
+            </button>
+            <button
+              onClick={downloadFrontPdf}
+              className="flex-1 bg-gray-900 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
+            >
+              PDF
+            </button>
+            <button
+              onClick={downloadFrontPsd}
+              className="flex-1 bg-gray-900 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
+            >
+              PSD
+            </button>
+          </div>
+
+          {/* 뒷면 */}
+          <p className="text-xs font-medium text-gray-500">뒷면 다운로드</p>
           <div className="flex gap-2">
             <button
               onClick={downloadBack}
-              className="flex-1 bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
+              className="flex-1 bg-gray-900 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
             >
-              뒷면 PNG
+              PNG
             </button>
             <button
               onClick={downloadBackPdf}
-              className="flex-1 bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
+              className="flex-1 bg-gray-900 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
             >
-              뒷면 PDF
+              PDF
             </button>
             <button
               onClick={downloadBackPsd}
-              className="flex-1 bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
+              className="flex-1 bg-gray-900 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
             >
-              뒷면 PSD
+              PSD
+            </button>
+          </div>
+
+          {/* 앞뒤 세트 */}
+          <p className="text-xs font-medium text-gray-500">앞뒤 세트 다운로드</p>
+          <div className="flex gap-2">
+            <button
+              onClick={downloadBothPng}
+              className="flex-1 bg-gray-700 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-600 transition-colors cursor-pointer"
+            >
+              PNG 세트
+            </button>
+            <button
+              onClick={downloadBothPdf}
+              className="flex-1 bg-gray-700 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-600 transition-colors cursor-pointer"
+            >
+              PDF 세트
+            </button>
+            <button
+              onClick={downloadBothPsd}
+              className="flex-1 bg-gray-700 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-600 transition-colors cursor-pointer"
+            >
+              PSD 세트
             </button>
           </div>
         </div>
